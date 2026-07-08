@@ -1,3 +1,15 @@
+function CheckService {
+    param(
+    [string]$ServiceName
+)
+Get-Service -Name $ServiceName
+if ((Get-Service -Name $ServiceName).Status -ne 'Running') {
+    Start-Service -Name $ServiceName
+    Write-Host "Service $ServiceName strated !"
+}
+}
+
+
 function Get-DiskAlerte {
     $disks = Get-Volume | Where-Object { $_.DriveType -eq "Fixed" }
     foreach ($disk in $disks) {
@@ -8,7 +20,3 @@ function Get-DiskAlerte {
     }
 
 }
-
-
-
-

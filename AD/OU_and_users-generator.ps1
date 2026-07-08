@@ -1,107 +1,14 @@
-########################################################
-#                                                      #
-#               Fonctions Powershell                   # 
-#                                                      #
-########################################################
-function New-Password
-{
+Import-Module ADModule
 
-$Alphabets = 'a,b,c,d,e,f,g,h,i,j,k,l,m,n,o,p,q,r,s,t,u,v,w,x,y,z'
-$numbers = 0..9
-$specialCharacters = '~,!,@,#,$,%,^,&,*,(,),>,<,?,\,/,_,-,=,+'
-$array = @()
-$array += $Alphabets.Split(',') | Get-Random -Count 4
-$array[0] = $array[0].ToUpper()
-$array[-1] = $array[-1].ToUpper()
-$array += $numbers | Get-Random -Count 3
-$array += $specialCharacters.Split(',') | Get-Random -Count 3
-($array | Get-Random -Count $array.Count) -join ""
-}
-function New-RandomUser {
-<#
-.SYNOPSIS
-Generate random user data from Https://randomuser.me/.
-.DESCRIPTION
-This function uses the free API for generating random user data from https://randomuser.me/
-.EXAMPLE
-Get-RandomUser 10
-.EXAMPLE
-Get-RandomUser -Amount 25 -Nationality us,gb 
-.LINK
-https://randomuser.me/
-#>
-[CmdletBinding()]
-param (
-[Parameter(Position = 0)]
-[ValidateRange(1,500)]
-[int] $Amount,
-
-[Parameter()]
-[ValidateSet('Male','Female')]
-[string] $Gender,
-
-# Supported nationalities: AU, BR, CA, CH, DE, DK, ES, FI, FR, GB, IE, IR, NL, NZ, TR, US
-[Parameter()]
-[string[]] $Nationality,
-
-
-[Parameter()]
-[ValidateSet('json','csv','xml')]
-[string] $Format = 'json',
-
-# Fields to include in the results.
-# Supported values: gender, name, location, email, login, registered, dob, phone, cell, id, picture, nat
-[Parameter()]
-[string[]] $IncludeFields,
-
-# Fields to exclude from the the results.
-# Supported values: gender, name, location, email, login, registered, dob, phone, cell, id, picture, nat
-[Parameter()]
-[string[]] $ExcludeFields
-)
-
-$rootUrl = "http://api.randomuser.me/?format=$($Format)"
-
-if ($Amount) {
-$rootUrl += "&results=$($Amount)"
-}
-
-if ($Gender) {
-$rootUrl += "&gender=$($Gender)"
-}
-
-
-if ($Nationality) {
-$rootUrl += "&nat=$($Nationality -join ',')"
-}
-
-if ($IncludeFields) {
-$rootUrl += "&inc=$($IncludeFields -join ',')"
-}
-
-if ($ExcludeFields) {
-$rootUrl += "&exc=$($ExcludeFields -join ',')"
-}
-
-Invoke-RestMethod -Uri $rootUrl
-}
-
-########################################################
-#                                                      #
-#               Fin Fonctions Powershell               # 
-#                                                      #
-########################################################
 Import-Module -Name  PSWriteWord -Force
 
 $fqdn = Get-ADDomain
 $fulldomain = $fqdn.DNSRoot
 $domain = $fulldomain.Split(".")
-$Dom  = $domain[0] 
+$Dom = $domain[0] 
 $Dom1 = $fulldomain.Split(".")[0]
-$EXT  = $domain[1]
+$EXT = $domain[1]
 $EXT1 = $(Get-ADDomain).DNSRoot.Split(".")[1]
-
-#Question 1.2 Les variables
 
 write-output $fqdn
 write-output $fulldomain 
@@ -111,16 +18,14 @@ write-output $Dom1
 write-output $EXT  
 write-output $EXT1 
 
-#Question 1.3 Les variables
 $OUpremierNiveau = 'Site Lyon'
-$OUsecondNiveaux = @('Informaticiens','Clients Entreprises','Services','Groupes')
-$Services        = @('Direction','Comptabilite','Commerciale')
-$Informatiques   = @('Techniciens informatiques','Administrateurs informatiques')
-$Groupes         = @('Groupes globaux','Groupes domaine locaux')
+$OUsecondNiveaux = @('Informaticiens', 'Clients Entreprises', 'Services', 'Groupes')
+$Services = @('Direction', 'Comptabilite', 'Commerciale')
+$Informatiques = @('Techniciens informatiques', 'Administrateurs informatiques')
+$Groupes = @('Groupes globaux', 'Groupes domaine locaux')
 
 
-function CreateADArbo{
-    #Question 1.4 L'arborescence AD
+function CreateADArbo {
 
     New-ADOrganizationalUnit -Name $OUpremierNiveau -ProtectedFromAccidentalDeletion $false
 
@@ -137,8 +42,8 @@ function CreateADArbo{
                     New-ADOrganizationalUnit -Name $item -Path "OU=$OU,Ou=$OUpremierNiveau,dc=$Dom,dc=$EXT" -ProtectedFromAccidentalDeletion $false
                 
                     switch ($item) {
-                        'Techniciens informatiques' { $utilisateurs = New-RandomUser -Amount 15 -Nationality FR -IncludeFields name,dob,phone,cell -ExcludeFields picture | Select-Object -ExpandProperty results }
-                        'Administrateurs informatiques'{ $utilisateurs = New-RandomUser -Amount 16 -Nationality FR -IncludeFields name,dob,phone,cell -ExcludeFields picture | Select-Object -ExpandProperty results } 
+                        'Techniciens informatiques' { $utilisateurs = New-RandomUser -Amount 15 -Nationality FR -IncludeFields name, dob, phone, cell -ExcludeFields picture | Select-Object -ExpandProperty results }
+                        'Administrateurs informatiques' { $utilisateurs = New-RandomUser -Amount 16 -Nationality FR -IncludeFields name, dob, phone, cell -ExcludeFields picture | Select-Object -ExpandProperty results } 
                         Default {}
                     }
                     
@@ -146,38 +51,35 @@ function CreateADArbo{
 
                         $userPassword = New-Password
                     
-                                $newUserProperties = @{
-                                Name = "$($user.name.first) $($user.name.last)"
-                                City = "Poitiers" # a modifier au besoin
-                                GivenName = $user.name.first
-                                Surname = $user.name.last
-                                Path = "OU=$Item,OU=$OU,Ou=$OUpremierNiveau,dc=$Dom,dc=$EXT"  # a modifier au besoin
-                                title = "Employees"  # a modifier au besoin
-                                department="$item"
-                                OfficePhone = $user.phone
-                                MobilePhone = $user.cell
-                                Company="$Dom"
-                                EmailAddress="$($user.name.first).$($user.name.last)@$($fulldomain)"
-                                AccountPassword = (ConvertTo-SecureString $userPassword -AsPlainText -Force)
-                                SamAccountName = $($user.name.first).Substring(0,1)+$($user.name.last)
-                                UserPrincipalName = "$(($user.name.first).Substring(0,1)+$($user.name.last))@$($fulldomain)"
-                                Enabled = $true
-                            } 
-                            # Pour detecter tout problème on utilse un Try Catch pour capturer les erreurs
-                            Try
-                            { 
-                                New-ADUser @newUserProperties     
-                            } 
-                            catch{}
+                        $newUserProperties = @{
+                            Name              = "$($user.name.first) $($user.name.last)"
+                            City              = "Poitiers" # a modifier au besoin
+                            GivenName         = $user.name.first
+                            Surname           = $user.name.last
+                            Path              = "OU=$Item,OU=$OU,Ou=$OUpremierNiveau,dc=$Dom,dc=$EXT"  # a modifier au besoin
+                            title             = "Employees"  # a modifier au besoin
+                            department        = "$item"
+                            OfficePhone       = $user.phone
+                            MobilePhone       = $user.cell
+                            Company           = "$Dom"
+                            EmailAddress      = "$($user.name.first).$($user.name.last)@$($fulldomain)"
+                            AccountPassword   = (ConvertTo-SecureString $userPassword -AsPlainText -Force)
+                            SamAccountName    = $($user.name.first).Substring(0, 1) + $($user.name.last)
+                            UserPrincipalName = "$(($user.name.first).Substring(0,1)+$($user.name.last))@$($fulldomain)"
+                            Enabled           = $true
+                        } 
+                        # Pour detecter tout problème on utilse un Try Catch pour capturer les erreurs
+                        Try { 
+                            New-ADUser @newUserProperties     
+                        } 
+                        catch {}
 
                             
-                        if(!(Test-Path -Path "C:\DocumentsUser\Employes\$OU\$Item"))
-                        {
+                        if (!(Test-Path -Path "C:\DocumentsUser\Employes\$OU\$Item")) {
                             New-Item -Path "C:\DocumentsUser\Employes\$OU\$Item" -ItemType Directory | Out-Null
                         }
-                        else
-                        {
-                        #"The directory exist" 
+                        else {
+                            #"The directory exist" 
                         }
 
                         #Emplacement du Template 
@@ -190,33 +92,33 @@ function CreateADArbo{
 
 
                         Add-WordText -WordDocument $WordDocument -Text 'Voici les informations qui vous permettrons de vous connecter au Domaine Active Directory', " $fulldomain" `
-                        -FontSize 12, 13 `
-                        -Color Black, Blue `
-                        -Bold $false, $true `
-                        -SpacingBefore 15 `
-                        -Supress $True
+                            -FontSize 12, 13 `
+                            -Color Black, Blue `
+                            -Bold $false, $true `
+                            -SpacingBefore 15 `
+                            -Supress $True
 
                         Add-WordText -WordDocument $WordDocument -Text 'Login : ', "$(($user.name.first).Substring(0,1)+$($user.name.last))" `
-                        -FontSize 12, 10 `
-                        -Color Black, Blue `
-                        -Bold $false, $true `
-                        -Supress $True
+                            -FontSize 12, 10 `
+                            -Color Black, Blue `
+                            -Bold $false, $true `
+                            -Supress $True
 
-                        Add-WordText -WordDocument $WordDocument -Text 'Mot de passe : ',"$userPassword" `
-                        -FontSize 12, 10 `
-                        -Color Black, Blue `
-                        -Bold $false, $true `
-                        -Supress $True
-                        Add-WordText -WordDocument $WordDocument -Text 'Adresse de messagerie : ',"$($user.name.first).$($user.name.last)@$($fulldomain)" `
-                        -FontSize 12, 10 `
-                        -Color Black, Blue `
-                        -Bold $false, $true `
-                        -SpacingAfter 15 `
-                        -Supress $True
+                        Add-WordText -WordDocument $WordDocument -Text 'Mot de passe : ', "$userPassword" `
+                            -FontSize 12, 10 `
+                            -Color Black, Blue `
+                            -Bold $false, $true `
+                            -Supress $True
+                        Add-WordText -WordDocument $WordDocument -Text 'Adresse de messagerie : ', "$($user.name.first).$($user.name.last)@$($fulldomain)" `
+                            -FontSize 12, 10 `
+                            -Color Black, Blue `
+                            -Bold $false, $true `
+                            -SpacingAfter 15 `
+                            -Supress $True
 
                         Add-WordText -WordDocument $WordDocument -Text "Le Service Informatique." `
-                        -FontSize 12 `
-                        -Supress $True
+                            -FontSize 12 `
+                            -Supress $True
                     
                         Add-WordProtection -WordDocument $WordDocument -EditRestrictions readOnly -Password 'P@$$Sio123*'
 
@@ -229,16 +131,16 @@ function CreateADArbo{
                 
 
             }
-            'Services'{
+            'Services' {
                 
                 foreach ($Serv in $Services) {
 
                     New-ADOrganizationalUnit -Name $Serv -Path "OU=$OU,Ou=$OUpremierNiveau,dc=$Dom,dc=$EXT" -ProtectedFromAccidentalDeletion $false
                 
                     switch ($Serv) {
-                        'Direction' {$utilisateurs = New-RandomUser -Amount 15 -Nationality FR -IncludeFields name,dob,phone,cell -ExcludeFields picture | Select-Object -ExpandProperty results   }
-                        'Comptabilite' {$utilisateurs = New-RandomUser -Amount 10 -Nationality FR -IncludeFields name,dob,phone,cell -ExcludeFields picture | Select-Object -ExpandProperty results   }
-                        'Commerciale' {$utilisateurs = New-RandomUser -Amount 20 -Nationality FR -IncludeFields name,dob,phone,cell -ExcludeFields picture | Select-Object -ExpandProperty results   }
+                        'Direction' { $utilisateurs = New-RandomUser -Amount 15 -Nationality FR -IncludeFields name, dob, phone, cell -ExcludeFields picture | Select-Object -ExpandProperty results }
+                        'Comptabilite' { $utilisateurs = New-RandomUser -Amount 10 -Nationality FR -IncludeFields name, dob, phone, cell -ExcludeFields picture | Select-Object -ExpandProperty results }
+                        'Commerciale' { $utilisateurs = New-RandomUser -Amount 20 -Nationality FR -IncludeFields name, dob, phone, cell -ExcludeFields picture | Select-Object -ExpandProperty results }
                         Default {}
                     }
 
@@ -246,79 +148,76 @@ function CreateADArbo{
 
                         $userPassword = New-Password
                     
-                                $newUserProperties = @{
-                                Name = "$($user.name.first) $($user.name.last)"
-                                City = "Poitiers" # a modifier au besoin
-                                GivenName = $user.name.first
-                                Surname = $user.name.last
-                                Path = "OU=$Serv,OU=$OU,Ou=$OUpremierNiveau,dc=$Dom,dc=$EXT"  # a modifier au besoin
-                                title = "Employees"  # a modifier au besoin
-                                department="$Serv"
-                                OfficePhone = $user.phone
-                                MobilePhone = $user.cell
-                                Company="$Dom"
-                                EmailAddress="$($user.name.first).$($user.name.last)@$($fulldomain)"
-                                AccountPassword = (ConvertTo-SecureString $userPassword -AsPlainText -Force)
-                                SamAccountName = $($user.name.first).Substring(0,1)+$($user.name.last)
-                                UserPrincipalName = "$(($user.name.first).Substring(0,1)+$($user.name.last))@$($fulldomain)"
-                                Enabled = $true
-                            } 
-                            # Pour detecter tout problème on utilse un Try Catch pour capturer les erreurs
-                            Try
-                            { 
-                                New-ADUser @newUserProperties     
-                            } 
-                            catch{}
-                            if(!(Test-Path -Path "C:\DocumentsUser\Employes\$OU\$Serv"))
-                            {
-                                New-Item -Path "C:\DocumentsUser\Employes\$OU\$Serv" -ItemType Directory | Out-Null
-                            }
-                            else
-                            {
+                        $newUserProperties = @{
+                            Name              = "$($user.name.first) $($user.name.last)"
+                            City              = "Poitiers" # a modifier au besoin
+                            GivenName         = $user.name.first
+                            Surname           = $user.name.last
+                            Path              = "OU=$Serv,OU=$OU,Ou=$OUpremierNiveau,dc=$Dom,dc=$EXT"  # a modifier au besoin
+                            title             = "Employees"  # a modifier au besoin
+                            department        = "$Serv"
+                            OfficePhone       = $user.phone
+                            MobilePhone       = $user.cell
+                            Company           = "$Dom"
+                            EmailAddress      = "$($user.name.first).$($user.name.last)@$($fulldomain)"
+                            AccountPassword   = (ConvertTo-SecureString $userPassword -AsPlainText -Force)
+                            SamAccountName    = $($user.name.first).Substring(0, 1) + $($user.name.last)
+                            UserPrincipalName = "$(($user.name.first).Substring(0,1)+$($user.name.last))@$($fulldomain)"
+                            Enabled           = $true
+                        } 
+                        # Pour detecter tout problème on utilse un Try Catch pour capturer les erreurs
+                        Try { 
+                            New-ADUser @newUserProperties     
+                        } 
+                        catch {}
+                        if (!(Test-Path -Path "C:\DocumentsUser\Employes\$OU\$Serv")) {
+                            New-Item -Path "C:\DocumentsUser\Employes\$OU\$Serv" -ItemType Directory | Out-Null
+                        }
+                        else {
                             #"The directory exist" 
-                            }
+                        }
         
-                            #Emplacement du Template 
-                            $FilePathTemplate = "C:\Template\template.docx"
+                        #Emplacement du Template 
+                        $FilePathTemplate = "C:\Template\template.docx"
         
-                            $WordDocument = Get-WordDocument -FilePath $FilePathTemplate
+                        $WordDocument = Get-WordDocument -FilePath $FilePathTemplate
         
-                            $FilePathInvoice = "C:\DocumentsUser\Employes\$OU\$Serv\$($user.name.last) $($user.name.first).docx"
-                            Add-WordText -WordDocument $WordDocument -Text 'Creation de Compte' -FontSize 15 -HeadingType Heading1 -FontFamily 'Arial' -Italic $true  | Out-Null
+                        $FilePathInvoice = "C:\DocumentsUser\Employes\$OU\$Serv\$($user.name.last) $($user.name.first).docx"
+                        Add-WordText -WordDocument $WordDocument -Text 'Creation de Compte' -FontSize 15 -HeadingType Heading1 -FontFamily 'Arial' -Italic $true  | Out-Null
         
         
-                            Add-WordText -WordDocument $WordDocument -Text 'Voici les informations qui vous permettrons de vous connecter au domaine Active Directory', " $fulldomain" `
+                        Add-WordText -WordDocument $WordDocument -Text 'Voici les informations qui vous permettrons de vous connecter au domaine Active Directory', " $fulldomain" `
                             -FontSize 12, 13 `
                             -Color Black, Blue `
                             -Bold $false, $true `
                             -SpacingBefore 15 `
                             -Supress $True
         
-                            Add-WordText -WordDocument $WordDocument -Text 'Login : ', "$(($user.name.first).Substring(0,1)+$($user.name.last))" `
+                        Add-WordText -WordDocument $WordDocument -Text 'Login : ', "$(($user.name.first).Substring(0,1)+$($user.name.last))" `
                             -FontSize 12, 10 `
                             -Color Black, Blue `
                             -Bold $false, $true `
                             -Supress $True
         
-                            Add-WordText -WordDocument $WordDocument -Text 'Mot de passe : ',"$userPassword" `
+                        Add-WordText -WordDocument $WordDocument -Text 'Mot de passe : ', "$userPassword" `
                             -FontSize 12, 10 `
                             -Color Black, Blue `
                             -Bold $false, $true `
                             -Supress $True
-                            Add-WordText -WordDocument $WordDocument -Text 'Adresse de messagerie : ',"$($user.name.first).$($user.name.last)@$($fulldomain)" `
+                        Add-WordText -WordDocument $WordDocument -Text 'Adresse de messagerie : ', "$($user.name.first).$($user.name.last)@$($fulldomain)" `
                             -FontSize 12, 10 `
                             -Color Black, Blue `
                             -Bold $false, $true `
                             -SpacingAfter 15 `
                             -Supress $True
         
-                            Add-WordText -WordDocument $WordDocument -Text "Le Service Informatique." `
+                        Add-WordText -WordDocument $WordDocument -Text "Le Service Informatique." `
                             -FontSize 12 `
                             -Supress $True
                         
-                            Add-WordProtection -WordDocument $WordDocument -EditRestrictions readOnly -Password 'P@$$Sio123*'
+                        Add-WordProtection -WordDocument $WordDocument -EditRestrictions readOnly -Password 'P@$$Sio123*'
         
-                            Save-WordDocument -WordDocument $WordDocument -FilePath $FilePathInvoice -Supress $true -Language 'fr-FR'
+                        Save-WordDocument -WordDocument $WordDocument -FilePath $FilePathInvoice -Supress $true -Language 'fr-FR'
         
                     
                     }
@@ -327,7 +226,7 @@ function CreateADArbo{
                 }
 
             }
-            'Groupes'{
+            'Groupes' {
 
                 foreach ($Grp in $Groupes) {
 
@@ -338,13 +237,13 @@ function CreateADArbo{
                             
                             foreach ($item in $Services) {
 
-                                $item = $item.replace(" ","_")
+                                $item = $item.replace(" ", "_")
 
                                 New-ADGroup -Name "Gg_$item" -DisplayName "G_$item" -GroupScope Global -GroupCategory Security -Path "OU=$Grp,OU=$OU,Ou=$OUpremierNiveau,dc=$Dom,dc=$EXT" -Description "Groupe Global $item"
                             }
                             foreach ($item in $Informatiques) {
 
-                                $item = $item.replace(" ","_")
+                                $item = $item.replace(" ", "_")
 
                                 New-ADGroup -Name "Gg_$item" -DisplayName "G_$item" -GroupScope Global -GroupCategory Security -Path "OU=$Grp,OU=$OU,Ou=$OUpremierNiveau,dc=$Dom,dc=$EXT" -Description "Groupe Global $item"
                             }
@@ -354,7 +253,7 @@ function CreateADArbo{
 
                             foreach ($item in $Services) {
                                 
-                                $item = $item.replace(" ","_")
+                                $item = $item.replace(" ", "_")
 
                                 New-ADGroup -Name "DL_$item`_L" -DisplayName "DL_$item`_L" -GroupScope DomainLocal -GroupCategory Security -Path "OU=$Grp,OU=$OU,Ou=$OUpremierNiveau,dc=$Dom,dc=$EXT" -Description "Groupe Domaine local $item Lecture"
                                 New-ADGroup -Name "DL_$item`_LM" -DisplayName "DL_$item`_LM" -GroupScope DomainLocal -GroupCategory Security -Path "OU=$Grp,OU=$OU,Ou=$OUpremierNiveau,dc=$Dom,dc=$EXT" -Description "Groupe Domaine local $item Lecture et modification"
@@ -363,7 +262,7 @@ function CreateADArbo{
                             }
                             foreach ($item in $Informatiques) {
                                 
-                                $item = $item.replace(" ","_")
+                                $item = $item.replace(" ", "_")
 
                                 New-ADGroup -Name "DL_$item`_L" -DisplayName "DL_$item`_L" -GroupScope DomainLocal -GroupCategory Security -Path "OU=$Grp,OU=$OU,Ou=$OUpremierNiveau,dc=$Dom,dc=$EXT" -Description "Groupe Domaine local $item Lecture"
                                 New-ADGroup -Name "DL_$item`_LM" -DisplayName "DL_$item`_LM" -GroupScope DomainLocal -GroupCategory Security -Path "OU=$Grp,OU=$OU,Ou=$OUpremierNiveau,dc=$Dom,dc=$EXT" -Description "Groupe Domaine local $item Lecture et modification"
@@ -387,11 +286,11 @@ function CreateADArbo{
     foreach ($item in $Users) {
         
         switch ($item.department) {
-            'Techniciens informatiques' {$item | Add-ADPrincipalGroupMembership  -MemberOf "Gg_Techniciens_informatiques" }
-            'Administrateurs informatiques' {$item | Add-ADPrincipalGroupMembership  -MemberOf "Gg_Administrateurs_informatiques"}
-            'Direction' {$item | Add-ADPrincipalGroupMembership  -MemberOf "Gg_Direction"}
-            'Comptabilite'  {$item | Add-ADPrincipalGroupMembership  -MemberOf "Gg_Comptabilite"}
-            'Commerciale'{$item | Add-ADPrincipalGroupMembership  -MemberOf "Gg_Commerciale"}
+            'Techniciens informatiques' { $item | Add-ADPrincipalGroupMembership  -MemberOf "Gg_Techniciens_informatiques" }
+            'Administrateurs informatiques' { $item | Add-ADPrincipalGroupMembership  -MemberOf "Gg_Administrateurs_informatiques" }
+            'Direction' { $item | Add-ADPrincipalGroupMembership  -MemberOf "Gg_Direction" }
+            'Comptabilite' { $item | Add-ADPrincipalGroupMembership  -MemberOf "Gg_Comptabilite" }
+            'Commerciale' { $item | Add-ADPrincipalGroupMembership  -MemberOf "Gg_Commerciale" }
             Default {}
         }
 
@@ -399,63 +298,61 @@ function CreateADArbo{
 
     $chemin = "Commun"
     $Drive = "C:\"
-    $cheminF=$drive+$chemin 
+    $cheminF = $drive + $chemin 
     New-Item -path "$cheminf" -ItemType directory | Out-Null
 
-    foreach ($item in $Services)
-    {
-    Set-Location $cheminF |Out-Null
-    New-Item -Name $item.Replace(" ","_") -ItemType directory |Out-Null
-    Set-Location $cheminF |Out-Null
+    foreach ($item in $Services) {
+        Set-Location $cheminF | Out-Null
+        New-Item -Name $item.Replace(" ", "_") -ItemType directory | Out-Null
+        Set-Location $cheminF | Out-Null
 
-    #Ajout de la securite NTFS
-    $item2 = $item.Replace(" ","_")
-    $chemin = "$cheminF" + "\$item2"
-        Set-NTFSInheritance -Path $item2.Replace(" ","_") -AccessInheritanceEnabled $false -AuditInheritanceEnabled $true 
-            $groupeL = "DL_" + $item.Replace(" ","_") + "_L" 
-            $groupeLM = "DL_" + $item.Replace(" ","_") + "_LM" 
-            $groupeCT = "DL_" + $item.Replace(" ","_") + "_CT" 
-                Add-NTFSAccess -Path $chemin -Account "$Dom\$groupeL" -AccessRights ReadAndExecute -AccessType Allow 
+        #Ajout de la securite NTFS
+        $item2 = $item.Replace(" ", "_")
+        $chemin = "$cheminF" + "\$item2"
+        Set-NTFSInheritance -Path $item2.Replace(" ", "_") -AccessInheritanceEnabled $false -AuditInheritanceEnabled $true 
+        $groupeL = "DL_" + $item.Replace(" ", "_") + "_L" 
+        $groupeLM = "DL_" + $item.Replace(" ", "_") + "_LM" 
+        $groupeCT = "DL_" + $item.Replace(" ", "_") + "_CT" 
+        Add-NTFSAccess -Path $chemin -Account "$Dom\$groupeL" -AccessRights ReadAndExecute -AccessType Allow 
             
-                Add-NTFSAccess -Path $chemin -Account "$Dom\$groupeLM" -AccessRights Modify -AccessType Allow 
+        Add-NTFSAccess -Path $chemin -Account "$Dom\$groupeLM" -AccessRights Modify -AccessType Allow 
                 
-                Add-NTFSAccess -Path $chemin -Account "$Dom\$groupeCT" -AccessRights FullControl -AccessType Allow 
+        Add-NTFSAccess -Path $chemin -Account "$Dom\$groupeCT" -AccessRights FullControl -AccessType Allow 
                 
-                Add-NTFSAccess -Path $chemin -Account "$Dom\Administrateur" -AccessRights FullControl -AccessType Allow
+        Add-NTFSAccess -Path $chemin -Account "$Dom\Administrateur" -AccessRights FullControl -AccessType Allow
         
     }
 
-    foreach ($item in $Informatiques)
-    {
-    Set-Location $cheminF |Out-Null
-    New-Item -Name $item.Replace(" ","_") -ItemType directory |Out-Null
-    Set-Location $cheminF |Out-Null
+    foreach ($item in $Informatiques) {
+        Set-Location $cheminF | Out-Null
+        New-Item -Name $item.Replace(" ", "_") -ItemType directory | Out-Null
+        Set-Location $cheminF | Out-Null
     
-    #Ajout de la securite NTFS
-    $item2 = $item.Replace(" ","_")
-    $chemin = "$cheminF" + "\$item2"
-        Set-NTFSInheritance -Path $item2.Replace(" ","_") -AccessInheritanceEnabled $false -AuditInheritanceEnabled $true 
-            $groupeL = "DL_" + $item.Replace(" ","_") + "_L" 
-            $groupeLM = "DL_" + $item.Replace(" ","_") + "_LM" 
-            $groupeCT = "DL_" + $item.Replace(" ","_") + "_CT" 
-                Add-NTFSAccess -Path $chemin -Account "$Dom\$groupeL" -AccessRights ReadAndExecute -AccessType Allow 
+        #Ajout de la securite NTFS
+        $item2 = $item.Replace(" ", "_")
+        $chemin = "$cheminF" + "\$item2"
+        Set-NTFSInheritance -Path $item2.Replace(" ", "_") -AccessInheritanceEnabled $false -AuditInheritanceEnabled $true 
+        $groupeL = "DL_" + $item.Replace(" ", "_") + "_L" 
+        $groupeLM = "DL_" + $item.Replace(" ", "_") + "_LM" 
+        $groupeCT = "DL_" + $item.Replace(" ", "_") + "_CT" 
+        Add-NTFSAccess -Path $chemin -Account "$Dom\$groupeL" -AccessRights ReadAndExecute -AccessType Allow 
             
-                Add-NTFSAccess -Path $chemin -Account "$Dom\$groupeLM" -AccessRights Modify -AccessType Allow 
+        Add-NTFSAccess -Path $chemin -Account "$Dom\$groupeLM" -AccessRights Modify -AccessType Allow 
                 
-                Add-NTFSAccess -Path $chemin -Account "$Dom\$groupeCT" -AccessRights FullControl -AccessType Allow 
+        Add-NTFSAccess -Path $chemin -Account "$Dom\$groupeCT" -AccessRights FullControl -AccessType Allow 
                 
-                Add-NTFSAccess -Path $chemin -Account "$Dom\Administrateur" -AccessRights FullControl -AccessType Allow
+        Add-NTFSAccess -Path $chemin -Account "$Dom\Administrateur" -AccessRights FullControl -AccessType Allow
     }
 
     #Il nous manque des Groupes de domaine locaux pour le premier dossier
     foreach ($Y in $chemin) {
                                 
-        $name= "Access_" + $Y
-            New-ADGroup -Name "DL_$name`_L" -DisplayName "DL_$name`_L" -GroupScope DomainLocal -GroupCategory Security -Path "OU=Groupes domaine locaux,OU=Groupes,OU=Site Lyon,DC=Tierslieux86,DC=fr" -Description "Groupe Domaine local $item Lecture"
-            New-ADGroup -Name "DL_$name`_LM" -DisplayName "DL_$name`_LM" -GroupScope DomainLocal -GroupCategory Security -Path "OU=Groupes domaine locaux,OU=Groupes,OU=Site Lyon,DC=Tierslieux86,DC=fr" -Description "Groupe Domaine local $item Lecture et modification"
-            New-ADGroup -Name "DL_$name`_CT" -DisplayName "DL_$name`_CT" -GroupScope DomainLocal -GroupCategory Security -Path "OU=Groupes domaine locaux,OU=Groupes,OU=Site Lyon,DC=Tierslieux86,DC=fr" -Description "Groupe Domaine local $item controle totale"
+        $name = "Access_" + $Y
+        New-ADGroup -Name "DL_$name`_L" -DisplayName "DL_$name`_L" -GroupScope DomainLocal -GroupCategory Security -Path "OU=Groupes domaine locaux,OU=Groupes,OU=Site Lyon,DC=Tierslieux86,DC=fr" -Description "Groupe Domaine local $item Lecture"
+        New-ADGroup -Name "DL_$name`_LM" -DisplayName "DL_$name`_LM" -GroupScope DomainLocal -GroupCategory Security -Path "OU=Groupes domaine locaux,OU=Groupes,OU=Site Lyon,DC=Tierslieux86,DC=fr" -Description "Groupe Domaine local $item Lecture et modification"
+        New-ADGroup -Name "DL_$name`_CT" -DisplayName "DL_$name`_CT" -GroupScope DomainLocal -GroupCategory Security -Path "OU=Groupes domaine locaux,OU=Groupes,OU=Site Lyon,DC=Tierslieux86,DC=fr" -Description "Groupe Domaine local $item controle totale"
         
-        }
+    }
         
     New-SmbShare -Name $chemin -Path $cheminf -ChangeAccess "AUTORITE NT\Utilisateurs authentifies" -Description "Accès $chemin " | Out-Null
     # Ajout de la Securite NTFS pour le dossier Commun
@@ -480,35 +377,31 @@ function CreateADArbo{
 
     foreach ($gl in $groupeGL) {
         
-        switch ($gl) 
-        { 
-            {(($gl -match "GG_Direction"))} {Add-ADGroupMember -Identity ( Get-ADGroup "Gg_Employes") -Members $gl} 
-            {(($gl -match "GG_Commerciale"))} {Add-ADGroupMember -Identity ( Get-ADGroup "Gg_Employes") -Members $gl}
-            {(($gl -match "GG_Comptabilite"))} {Add-ADGroupMember -Identity ( Get-ADGroup "Gg_Employes") -Members $gl}
+        switch ($gl) { 
+            { (($gl -match "GG_Direction")) } { Add-ADGroupMember -Identity ( Get-ADGroup "Gg_Employes") -Members $gl } 
+            { (($gl -match "GG_Commerciale")) } { Add-ADGroupMember -Identity ( Get-ADGroup "Gg_Employes") -Members $gl }
+            { (($gl -match "GG_Comptabilite")) } { Add-ADGroupMember -Identity ( Get-ADGroup "Gg_Employes") -Members $gl }
 
-            {(($gl -match "Info") -and ($gl -notmatch "Gg_Employes_informatiques"))} {Add-ADGroupMember -Identity ( Get-ADGroup "Gg_Employes_informatiques") -Members $gl  } 
+            { (($gl -match "Info") -and ($gl -notmatch "Gg_Employes_informatiques")) } { Add-ADGroupMember -Identity ( Get-ADGroup "Gg_Employes_informatiques") -Members $gl } 
             
             default {}
         }
     }
 
 
-    foreach ($gl in $groupeGL)
-    {
-        foreach ($dl in $groupeDL)
-        {
-    switch ($gl) 
-        { 
-            {(($gl -match "Direc") -And ($dl -match "Direction_LM"))} {Add-ADGroupMember -Identity $dl -Members $gl} 
-            {(($gl -match "Direc") -And ($dl -match "Commerciale_LM"))} {Add-ADGroupMember -Identity $dl -Members $gl} 
-            {(($gl -match "Direc") -And ($dl -match "Comptabilite_LM"))} {Add-ADGroupMember -Identity $dl -Members $gl} 
-            {(($gl -match "Compta") -And ($dl -match "Comptabilite_LM"))} {Add-ADGroupMember -Identity $dl -Members $gl} 
-            {(($gl -match "Commer") -And ($dl -match "Commerciale_LM"))} {Add-ADGroupMember -Identity $dl -Members $gl} 
-            {(($gl -match "Commer") -And ($dl -match "Comptabilite_L"))} {Add-ADGroupMember -Identity $dl -Members $gl} 
-            {(($gl -match "info") -And ($dl -match "CT"))}{Add-ADGroupMember -Identity  $dl -Members $gl}
+    foreach ($gl in $groupeGL) {
+        foreach ($dl in $groupeDL) {
+            switch ($gl) { 
+                { (($gl -match "Direc") -And ($dl -match "Direction_LM")) } { Add-ADGroupMember -Identity $dl -Members $gl } 
+                { (($gl -match "Direc") -And ($dl -match "Commerciale_LM")) } { Add-ADGroupMember -Identity $dl -Members $gl } 
+                { (($gl -match "Direc") -And ($dl -match "Comptabilite_LM")) } { Add-ADGroupMember -Identity $dl -Members $gl } 
+                { (($gl -match "Compta") -And ($dl -match "Comptabilite_LM")) } { Add-ADGroupMember -Identity $dl -Members $gl } 
+                { (($gl -match "Commer") -And ($dl -match "Commerciale_LM")) } { Add-ADGroupMember -Identity $dl -Members $gl } 
+                { (($gl -match "Commer") -And ($dl -match "Comptabilite_L")) } { Add-ADGroupMember -Identity $dl -Members $gl } 
+                { (($gl -match "info") -And ($dl -match "CT")) } { Add-ADGroupMember -Identity  $dl -Members $gl }
             
-            default {}
-        }
+                default {}
+            }
         }
     }
 }
