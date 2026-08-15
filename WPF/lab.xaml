@@ -1,0 +1,29 @@
+<Window
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    Title="Ping Tester"
+    Height="250"
+    Width="400">
+
+    <StackPanel Margin="20">
+
+        <TextBlock
+            Text="Nom de la machine"
+            FontSize="18"
+            Margin="0,0,0,10"/>
+
+        <TextBox
+            Name="ComputerName"
+            Height="30"
+            Margin="0,0,0,10"/>
+
+        <Button
+            Name="TestButton"
+            Content="Tester"
+            Height="35"/>
+
+        <TextBlock
+            Name="Result"
+            Margin="0,20,0,0"/>
+
+    </StackPanel>
+</Window>
